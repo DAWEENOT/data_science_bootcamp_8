@@ -1,0 +1,833 @@
+---
+title: "Diwali Sales Dataset"
+author: "Dhanachote_W"
+date: "2023-11-06"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+  geometry: "a4paper"
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+options(tinytex.verbose = TRUE)
+```
+
+
+
+# Introduction
+
+Hi, my name is Dhanachote. I'm working on a mini-project to analyze and practice the R language, build my data visualization skills, and create a report using Rmarkdown. For this project, I'm using the 'Diwali Sales' dataset sourced from Kaggle, which you can find at the link below. Therefore, I cleaned the dataset in Excel before importing it into R programming.
+
+***
+
+## Reference
+
+![](D:/Rstudio work\Diwali_Sales\Kaggle_logo.png)
+
+[Diwali Sales Dataset Source from Kaggle](https://www.kaggle.com/datasets/saadharoon27/diwali-sales-dataset)
+
+***
+ 
+## Table
+- Part I: Questions and Data Visualization
+    - Question 1: What is the most popular product category during Diwali sales?
+    - Question 2: Which customer group has the highest total purchase amount?
+    - Question 3: Which state has the highest total customer purchase amount?
+    - Question 4 : State / Zone
+        - Question 4.1: Count the number of orders for each zone and calculate the average order size for each zone.
+        - Question 4.2: Calculate the total number of orders across all zones.
+        - Question 4.3: For each zone, identify the product category with the highest number of orders.
+        - Question 4.4: Identify the product category with the highest total sales amount in the each zone.
+    - Question 5: Generation
+        - Question 5.1: Which customer has spent the most money? To which generation do they belong?
+        - Question 5.2: Calculate the average order amount for Generation Z customers.
+        - Question 5.3: Determine the number of male and female customers
+        - Question 5.4: Identify the number of customers belonging to each generation.
+    - Question 6: Identify the percentage amount for each occupation.
+    - Question 7: What is the total amount for each age group?
+- Part II: Machine Learning
+
+***
+
+### Part I Questions and Data Visualization
+
+In this part, I asking a serveral questions to understanding in the dataset. I use library such as `tidyverse` ,`readr`, `dplyr`, `ggplot2`, and `caret` before query the dataset.
+
+### Install packages and download library
+
+```{r library, message=FALSE, warning=FALSE}
+## Library
+library(readr)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(caret)
+```
+
+#### Import dataset from `.csv`
+```{r warning=FALSE}
+## import read.csv()
+
+diwali_sales <- tibble(read.csv("Diwali_Sales_Data_main.csv"))
+
+```
+
+#### Check NA 
+```{r warning=FALSE}
+## check NA
+
+diwali_sales %>%
+  complete.cases()%>%
+  mean()
+```
+
+> I use `complete.cases()` to check for missing values and then use `mean()` to calculate the logical mean (TRUE = 1, FALSE = 0). If the mean value is 0, it means that the dataset is complete and has no missing values. 
+
+***
+
+
+> **Tip**: You can check logical values by using the `as.logical()` function. For example, `as.logical(0)` evaluates to FALSE, while 1 evaluates to TRUE.
+
+#### **Prepare the dataset**
+```{r message=FALSE, warning=FALSE}
+## select column
+
+ds_cl <- diwali_sales %>%
+  select(User_ID,
+         Cust_name,
+         Product_ID,
+         Product_Category,
+         Gender,
+         Age,
+         Marital_Status,
+         State,
+         Zone,
+         Occupation,
+         Orders,
+         Amount) %>%
+  drop_na()
+```
+
+***
+
+### Question 1: What is the most popular product category during Diwali sales?
+```{r message=TRUE, warning=FALSE}
+q1 <- diwali_sales %>%
+  group_by(Product_Category) %>%
+  summarise(Total_amount = sum(Orders * Amount)) %>%
+  arrange(desc(Total_amount)) %>%
+  head(5)
+
+print(q1)
+
+message("The most product category total amount is: ", 
+        head(q1$Product_Category,1),
+        " " ,
+        "and",
+        " ",
+        "The total amount is: $ ",
+        head(q1$Total_amount,1))
+```
+
+
+
+
+##### **Plot 1:**
+```{r warning=FALSE}
+ds_cl %>%
+  group_by(Product_Category) %>%
+  summarise(
+    total_amount = sum(Amount * Orders)
+  ) %>%
+  top_n(5) %>%
+  arrange(desc(total_amount)) %>%
+  ggplot(aes(reorder(Product_Category, -total_amount), total_amount, fill = Product_Category)) +
+  geom_col() +
+  theme_minimal() +
+  labs(
+    title = "Top Five Product Category",
+    x = "Product Category",
+    y = "Total Amount",
+    caption = "Source: Kaggle Diwali Sales Dataset"
+  )
+```
+
+
+***
+
+### Question 2: Which customer has the highest total purchase amount?
+```{r message=TRUE, warning=FALSE}
+## Question2 : Who is the most spending amount
+
+q2 <- diwali_sales %>%
+  group_by(Cust_name) %>%
+  summarise(
+    Total_amount = sum(Orders * Amount)
+  ) %>%
+  arrange(desc(Total_amount)) %>%
+  head(5)
+
+print(q2)
+message(head(q2$Cust_name,1),
+        " ",
+        "is the most spending amount in $ ",
+        head(q2$Total_amount,1),
+        " product category")
+```
+
+##### **Plot 2**
+```{r warning=FALSE}
+ds_cl %>%
+  group_by(Cust_name) %>%
+  summarise(
+    total_amount = sum(Amount * Orders)
+  ) %>%
+  top_n(5) %>%
+  ggplot(aes(reorder(Cust_name, -total_amount), total_amount, fill = Cust_name)) +
+  geom_col() +
+  theme_minimal() +
+  labs(
+    title = "Top Five Customers",
+    x = "Customer Name",
+    y = "Total Amount",
+    caption = "Source: Kaggle Diwali Sales Dataset"
+  )
+```
+
+***
+
+### Question 3: Which state has the highest total customer purchase amount?
+```{r}
+q3 <- diwali_sales%>%
+    select(Cust_name,
+           Gender,
+           State,
+           Zone,
+           Orders,
+           Amount) %>%
+    mutate(Total_amount = Orders * Amount) %>%
+    filter(Total_amount > 50000) %>%
+    arrange(desc(Total_amount)) %>%
+    head(10)
+
+print(q3)
+message("Which state is the most user spending is: ",
+        head(q3$State,1))
+```
+***
+
+### Question 4 : State / Zone
+
+> In this question, I provided a chart that explains which state has the highest total amount before starting the questions.
+
+```{r}
+## Plot 4: Relationship with State and Amount
+
+ds_cl %>%
+  group_by(State) %>%
+ggplot(data = ds_cl,
+       mapping = aes(x = Amount, y = State, fill = State)) +
+  geom_col()
+
+```
+
+
+
+#### **Question 4.1**: Count the number of orders for each zone and calculate the average order size for each zone.
+
+```{r message=TRUE, warning=FALSE}
+# count zone
+diwali_sales %>%
+  count(Zone)
+```
+
+```{r message=TRUE, warning=FALSE}
+avg_orders <- mean(diwali_sales$Orders)
+
+  ## total and percentage avg orders
+
+diwali_sales %>%
+  select(Zone,
+         Product_Category,
+         Orders,
+         Amount) %>%
+  filter(Orders >= avg_orders) %>%
+  group_by(Zone) %>%
+  summarise(total_avg_orders = n()) %>%
+  mutate(pct_avg_orders =  c(total_avg_orders / sum(total_avg_orders)) * 100) %>%
+  arrange(desc(total_avg_orders))
+```
+
+
+#### **Question 4.2**: Calculate the total number of orders across all zones.
+```{r message=TRUE, warning=FALSE}
+  # total orders  
+  diwali_sales %>%
+    select(Zone,
+           Product_Category,
+           Orders) %>%
+    group_by(Zone) %>%
+    summarise(total_orders = sum(Orders))
+```
+
+```{r warning=FALSE}
+## Plot 4.2:  Calculate the total number of orders across all zones.
+
+ds_cl %>%
+  group_by(Zone) %>%
+  summarise(total_orders = sum(Orders)) %>%
+  arrange(desc(total_orders)) %>%
+  ggplot(mapping = aes(x = reorder(Zone, -total_orders), y = total_orders, fill = Zone)) +
+  geom_col() +
+  labs(
+    title = "Total Orders by Zone",
+    x = "Zone",
+    y = "Total Orders",
+    caption =  "Source: Kaggle Diwali Sales Dataset"
+  )
+```
+
+
+
+#### **Question 4.3**: For each zone, identify the product category with the highest number of orders.
+
+> The summary of this question involves visualizing the highest amount of orders by zone.
+
+```{r}
+## Plot 4.3:  For each zone, identify the product category with the highest number of orders.
+
+ds_cl %>%
+  group_by(Zone) %>%
+  summarise(total_amount = sum(Amount)) %>%
+  arrange(desc(total_amount)) %>%
+  ggplot(
+         mapping = aes(x = reorder(Zone, -total_amount), y = total_amount, fill = Zone )) +
+  geom_col() +
+  labs(
+    title = "Total amount by Zone",
+    x = "Zone",
+    y = "Total amount",
+    caption = "Source: Kaggle Diwali Sales Dataset"
+  )
+```
+
+**Central**
+
+```{r warning=FALSE}
+## Central
+
+  diwali_sales %>%
+    select(Zone, 
+           Product_Category,
+           Orders, 
+           Amount) %>%
+    group_by(Product_Category) %>%
+    filter(Zone == "Central") %>%
+    summarize(Total_order = sum(Orders)) %>%
+    arrange(desc(Total_order)) %>%
+    head(2)  
+```
+
+**Western**
+```{r}
+## Western
+  
+  diwali_sales %>%
+    select(Zone, 
+           Product_Category,
+           Orders, 
+           Amount) %>%
+    group_by(Product_Category) %>%
+    filter(Zone == "Western") %>%
+    summarize(Total_order = sum(Orders)) %>%
+    arrange(desc(Total_order)) %>%
+    head(2) 
+```
+
+**Southern**
+```{r}
+## Southern
+  
+  diwali_sales %>%
+    select(Zone, 
+           Product_Category,
+           Orders, 
+           Amount) %>%
+    group_by(Product_Category) %>%
+    filter(Zone == "Southern") %>%
+    summarize(Total_order = sum(Orders)) %>%
+    arrange(desc(Total_order)) %>%
+    head(2)
+```
+
+**Eastern**
+```{r}
+## Eastern
+  
+  diwali_sales %>%
+    select(Zone, 
+           Product_Category,
+           Orders, 
+           Amount) %>%
+    group_by(Product_Category) %>%
+    filter(Zone == "Eastern") %>%
+    summarize(Total_order = sum(Orders)) %>%
+    arrange(desc(Total_order)) %>%
+    head(2) 
+```
+
+**Northern**
+```{r}
+## Northern
+  
+  diwali_sales %>%
+    select(Zone, 
+           Product_Category,
+           Orders, 
+           Amount) %>%
+    group_by(Product_Category) %>%
+    filter(Zone == "Northern") %>%
+    summarize(Total_order = sum(Orders)) %>%
+    arrange(desc(Total_order)) %>%
+    head(2) 
+```
+
+
+
+#### **Question 4.4**: Identify the product category with the highest total sales amount each zone.
+
+```{r}
+# which product category is the most spent in Central?
+
+diwali_sales %>%
+  select(Zone, 
+         Product_Category, 
+         Amount) %>%
+  group_by(Product_Category) %>%
+  filter(Zone == "Central") %>%
+  summarize(Total_Amount = sum(Amount)) %>%
+  arrange(desc(Total_Amount)) %>%
+  head(10)
+
+
+  # which product category is the most spent in Western?
+
+diwali_sales %>%
+  select(Zone, Product_Category, Amount) %>%
+  group_by(Product_Category) %>%
+  filter(Zone == "Western") %>%
+  summarize(Total_Amount = sum(Amount)) %>%
+  arrange(desc(Total_Amount)) %>%
+  head(10)
+
+
+  # which product category is the most spent in Southern?
+
+diwali_sales %>%
+  select(Zone, Product_Category, Amount) %>%
+  group_by(Product_Category) %>%
+  filter(Zone == "Southern") %>%
+  summarize(Total_Amount = sum(Amount)) %>%
+  arrange(desc(Total_Amount)) %>%
+  head(10)
+
+
+  # which product category is the most spent in Eastern?
+
+diwali_sales %>%
+  select(Zone, Product_Category, Amount) %>%
+  group_by(Product_Category) %>%
+  filter(Zone == "Eastern") %>%
+  summarize(Total_Amount = sum(Amount)) %>%
+  arrange(desc(Total_Amount)) %>%
+  head(10)
+
+  # which product category is the most spent in Northern?
+
+diwali_sales %>%
+  select(Zone, Product_Category, Amount) %>%
+  group_by(Product_Category) %>%
+  filter(Zone == "Northern") %>%
+  summarize(Total_Amount = sum(Amount)) %>%
+  arrange(desc(Total_Amount)) %>%
+  head(10)
+```
+
+***
+
+### Question 5: Generation
+ Since the dataset does not have a Generation column, I need to create one.
+```{r}
+## create generation table
+
+diwali_sales_gen <- diwali_sales %>%
+                select(User_ID,
+                       Cust_name,
+                       Product_ID,
+                       Gender,
+                       Age.Group,
+                       Age,
+                       Marital_Status,
+                       Marital_Status,
+                       State,
+                       Zone,
+                       Occupation,
+                       Product_Category,
+                       Orders,
+                       Amount) %>%
+                mutate(Generation = ifelse(Age < 26, "Gen Z",
+                                    ifelse(Age < 42, "Millennials",
+                                    ifelse(Age < 58, "Gen X",
+                                    ifelse(Age < 68, "Baby Boomer", "Silent Generation")))))
+```
+
+#### **Question 5.1:** Which customer has spent the most money? To which generation do they belong?
+```{r}
+## Question 5.1: Which customer has spent the most money? To which generation do they belong?
+
+diwali_sales_gen %>%
+  select(User_ID,
+         Cust_name,
+         Gender,
+         Age,
+         Orders,
+         Amount,
+         Occupation,
+         Generation) %>%
+  mutate(total_amount = Orders * Amount)%>%
+  arrange(desc(total_amount)) %>%
+  head(10)
+```
+
+#### **Question 5.2:** Calculate the average order amount for Generation Z customers.
+```{r}
+
+## Avg amount gen z
+
+diwali_sales_gen %>%
+  group_by(Generation) %>%
+  filter(Generation == "Gen Z") %>%
+  summarize(
+    total_amount = sum(Amount),
+    avg_amount = mean(Amount),
+    percentage_amount = (sum(Amount) / sum(diwali_sales_gen$Amount)) * 100
+  )
+```
+
+
+#### **Question 5.3:** Determine the number of male and female customers
+```{r}
+  ## How many Male and Female in Gender?
+
+diwali_sales %>%
+  count(Gender)
+```
+
+```{r}
+## Plot 3: Which gender are the most come to shopping at store
+
+ggplot(data = ds_cl,
+       mapping = aes(x = Gender, fill = Gender)) +
+  geom_bar() +
+  theme_minimal() +
+  labs(
+    title = "The most gender shopping at store",
+    x = "Gender",
+    y = "Count",
+    caption = "Source: Kaggle Diwali Sales Dataset"
+  )
+```
+
+
+#### **Question 5.4:** Identify the number of customers belonging to each generation.
+```{r}
+  ## How many Generation in Customer?
+
+diwali_sales_gen %>%
+  count(Generation)
+```
+
+```{r warning=FALSE}
+## Plot 5: Total Generation
+
+diwali_sales_gen%>%
+  group_by(Generation) %>%
+  count() %>%
+  ggplot(mapping = aes(x = reorder(Generation, -n), y = n, fill = Generation))+
+  geom_col() +
+  labs(
+    title = "Total Generation",
+    x = "Generation",
+    y = "Count",
+    caption = "Source: Kaggle Diwali Sales Dataset"
+  )
+```
+
+***
+
+### **Occupationa**
+
+> Before moving on to the next question, I provided the total occupation count from the dataset.
+
+```{r warning=FALSE}
+## Plot 6: Total Occupation
+
+diwali_sales_gen %>%
+  group_by(Occupation) %>%
+  count() %>%
+  ggplot(mapping = aes(x = reorder(Occupation, -n), y = n, fill = Occupation))+
+  geom_col() +
+  labs(
+    title = "Total Occupation",
+    x = "Generation",
+    y = "Count",
+    caption = "Source: Kaggle Diwali Sales Dataset"
+  )
+```
+
+
+
+### **Question 6:** Identify the percentage amount for each occupation.
+```{r}
+## Question 6: Identify the percentage amount for each occupation.
+
+avg_amount <- mean(diwali_sales$Amount)
+
+diwali_sales %>%
+  select(Occupation,
+         Orders,
+         Amount) %>%
+  group_by(Occupation) %>%
+  summarise(total_avg_amount = n(),
+            pct_amount = (sum(Amount) / sum(diwali_sales_gen$Amount)) *100) %>%
+  arrange(desc(total_avg_amount))
+
+```
+
+***
+
+#### **Age Group**
+### **Question 7:** What is the total amount for each age group?
+```{r}
+## Question 7: What is the total amount for each age group? 
+
+diwali_sales %>%
+  select(Age.Group,
+         Product_Category,
+         Amount,
+         Orders) %>%
+  group_by(Age.Group) %>%
+  summarise(total_amount = sum(Amount),
+            pct_amount = (sum(Amount) / sum(diwali_sales_gen$Amount)) * 100) %>%
+  arrange(desc(total_amount))
+```
+
+```{r}
+## Plot 7: What is the total amount for each age group?
+
+diwali_sales %>%
+  group_by(Age.Group) %>%
+  summarise(total_amount = sum(Amount)) %>%
+  arrange(desc(total_amount)) %>%
+  ggplot(mapping = aes( x= reorder(Age.Group, -total_amount), y = total_amount, fill = Age.Group)) +
+  geom_col() +
+  labs(
+    title = "Total amount by Age group",
+    x = "Age groups",
+    y = "Total Amount",
+    caption = "Source: Kaggle Diwali Sales Datasets"
+  )
+
+```
+
+***
+
+### Summary 
+
+In summary, the most prominent product category in the Diwali Sales dataset is food. The dataset shows that in the state of Uttar Pradesh, there are a lot of customers buying during Diwali. In terms of zones, the Central zone has the highest total amount. Lastly, the most common customer age range is 26-35, representing Generation Z. By the way, I've noticed that females spend more than males in this dataset.
+
+***
+
+## **Part II**: Machine Learning
+
+### What is Machine Learing
+
+Machine learning is a type of artificial intelligence (AI) focused on building computer systems that learn from data.
+
+#### **Before delving into machine learning.**
+
+I am using machine learning to predict the amount of sales during Diwali. In this section, I have broken down the topic to make it understandable for everyone, demonstrating how I code by following these steps:
+
+- Install package
+- Import dataset
+- Prepare data
+- Split data
+- Train & Test data
+- Scoring
+- Evaluate model
+
+***
+
+#### **Install package and Import dataset**
+
+```{r warning=FALSE}
+## install.packages
+install.packages("readr")
+install.packages("dplyr")
+install.packages("tidyverse")
+install.packages("ggplot2")
+
+## Library
+library(readr)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(caret)
+
+## import read.csv()
+
+diwali_sales <- tibble(read.csv("Diwali_Sales_Data_main.csv"))
+
+## select column
+
+ds_cl <- diwali_sales %>%
+  select(User_ID,
+         Cust_name,
+         Product_ID,
+         Product_Category,
+         Gender,
+         Age,
+         Marital_Status,
+         State,
+         Zone,
+         Occupation,
+         Orders,
+         Amount) %>%
+  drop_na()
+
+
+
+## check NA
+
+ds_cl %>%
+  complete.cases() %>%
+  mean()
+```
+
+***
+
+#### **Quick Visualization of Amount**
+
+```{r}
+
+ggplot(ds_cl, aes(Amount)) +
+  geom_density() +
+  theme_minimal() +
+  labs(
+    title = "Quick Visualization of Amount",
+    x = "Amount",
+    caption = "Source: Kaggle Diwali Sales Datasets"
+  )
+
+```
+
+
+***
+
+#### **Split and Prep Data**
+
+```{r}
+## split data
+
+sp_data <- function(ds_cl, train_size = 0.7) {
+  set.seed(42)
+  n <- nrow(diwali_sales)
+  id <- sample(n, size = n * train_size)
+  tr_df <- ds_cl[id,]
+  ts_df <- ds_cl[-id,]
+  list(train = tr_df,
+       test = ts_df)
+}
+
+
+## prep data
+
+prep_data <- sp_data(ds_cl)
+tr_df <- prep_data[[1]]
+ts_df <- prep_data[[2]]
+```
+
+
+#### **Train data**
+
+```{r warning=FALSE}
+## train model
+
+set.seed(42)
+lm_model <- train(Amount ~ Orders ,
+               data = tr_df,
+               method = "lm")
+
+
+## view model
+
+lm_model
+```
+
+
+#### **Scoring**
+
+```{r warning=FALSE}
+# score <- prediction
+
+p <- predict(lm_model, newdata = ts_df)
+
+```
+
+#### **Evaluate**
+```{r warning=FALSE}
+## evaluate
+  # mae mse rmse
+  ## create function
+
+cal_mae <- function(actual, pred) {
+  error <- actual - pred
+  return(mean(abs(error)))
+}
+
+cal_mse <- function(actual, pred) {
+  error <- actual - pred
+  mean(error ** 2)
+}
+
+cal_rmse <- function(actual, pred) {
+  error <- actual - pred
+  sqrt(mean(error ** 2))
+}
+
+
+# check result
+
+cal_mae(ts_df$Amount, p)
+cal_mse(ts_df$Amount, p)
+cal_rmse(ts_df$Amount, p)
+
+```
+
+#### **Summary**
+```{r}
+## Summary 
+
+lm_model$finalModel %>%
+  summary()
+```
+
+
+
+
+
+
