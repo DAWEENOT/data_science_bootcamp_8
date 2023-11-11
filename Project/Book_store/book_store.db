@@ -1,102 +1,136 @@
-.open restaurant.db
-.mode column
+.open book_store.db
+
+-- CREATE TABLE STORES --
+CREATE TABLE IF NOT EXISTS stores(
+	store_id int,
+	store_name text,
+	location text,
+	phone text
+);
+
+CREATE TABLE IF NOT EXISTS books(
+	book_id int,
+	title text,
+	author text,
+	price real
+);
+
+CREATE TABLE IF NOT EXISTS customers(
+	customer_id int,
+	customer_firstname text,
+	customer_lastname text,
+	country,
+	phone text,
+	email text
+);
+
+CREATE TABLE IF NOT EXISTS invoices(
+	invoice_id int,
+	customer_id int,
+	store_id int,
+	employee_id int,
+	book_id int,
+	order_id int,
+	quantity int,
+	invoice_date text
+);
+
+CREATE TABLE IF NOT EXISTS employees(
+	employee_id int,
+	employee_firstname text,
+	employee_lastname text,
+	position text,
+	phone text,
+	email text,
+	store_id int
+);
+
+CREATE TABLE IF NOT EXISTS orders(
+	order_id int,
+	order_date text,
+	invoice_id int,
+	book_id int,
+	quantity int,
+	customer_id int
+);
 
 
--- Filter Only customer that has phone  --
-SELECT *
-FROM customers
-WHERE phone NOT LIKE " " ;
+-- INSERT INTO --
+INSERT INTO stores VALUES
+	(101, "Happy Book", "BKK", "02-234-4213"),
+	(102, "Happy Book", "CNX", "02-312-3413"),
+	(103, "Happy Book", "CEI", "02-313-3123"),
+	(104, "Happy Book", "HKT", "02-414-2323"),
+	(105, "Happy Book", "KBV", "02-313-4524"),
+	(106, "Happy Book", "HDY", "02-415-3213");
 
+INSERT INTO books VALUES 
+	(1001, "Harry Potter", "JK Rowling", 300),
+	(1002, "Mickey Mouse", "Wander Bother", 230),
+	(1003, "Intro To Data Science", "Data Rockie", 350),
+	(1004, "Python Crash Course", "Eric Matthes", 250),
+	(1005, "SQL Injection", "Eric Matthes", 250),
+	(1006, "R Programming", "Data Rockie", 250),
+	(1007, "How to Sleep As Well", "Data Rockie", 150),
+	(1008, "How to Learn Data Science", "Data Rockie", 300),
+	(1009, "The Big Data", "Kendick Lamer", 100);
 
--- The Best Seller Menu --
+	INSERT INTO customers VALUES 
+	(01, "John", "Doe", "BKK", "089-234-4213", "Djhon@hotmail.com"),
+	(02, "Toy", "McGee", "USA", "088-312-3413", "Mcgee@gmail.com"),
+	(03, "Eye", "Khaw", "USA", "083-313-3123", "Khaweye@hotmail.com"),
+	(04, "Min", "Hlaing", "US", "084-313-8232", "MinHla@gmail.com"),
+	(05, "Ning", "Nong", "FRA", "082-423-4141", "Ning@gmail.com"),
+	(06, "Ken", "Ken", "DEU", "081-313-4524", "KenKen@gmail.com"),
+	(07, "Jinnie", "Niejai", "ITA", "084-123-2424", "Jinnie@hotmail.com"),
+	(08, "Nam", "Jai", "JPN", "093-132-4522", "Namjai@hotmail,com"),
+	(09, "Ying", "Luk", "USA","099-999-9999", "Yingluk@hotmail.com"),
+	(10, "Rae", "Liblack", "JPN", "069-696-6969", "Rae@gmail.com");
 
-SELECT 
-  menu_name,
-  menu_price,
-  COUNT (*) AS "number of order",
-  SUM (menu_price) AS "total sales"
-FROM invoices
-JOIN menus
-ON invoices.menu_id = menus.menu_id
-GROUP BY menu_name
-ORDER by "number of order" DESC
-LIMIT 1;
+INSERT INTO invoices VALUES 
+(021312, 01, 105, 01, 1001, 01, 2, "2022-01-01"),
+(023413, 02, 102, 02, 1002, 02, 3, "2022-01-02"),
+(031234, 03, 103, 03, 1003, 03, 2, "2022-01-03"),
+(031423, 04, 104, 04, 1004, 04, 1, "2022-01-04"),
+(042313, 05, 105, 05, 1005, 05, 3, "2022-01-05"),
+(051323, 06, 106, 06, 1006, 06, 4, "2022-01-06"),
+(061423, 07, 104, 07, 1007, 07, 1, "2022-01-07"),
+(071323, 08, 103, 08, 1008, 08, 2, "2022-01-08"),
+(081423, 09, 102, 09, 1009, 09, 2, "2022-01-09"),
+(091323, 10, 105, 10, 1003, 10, 3, "2022-01-10"),
+(101234, 01, 105, 01, 1001, 11, 4, "2022-01-02"),
+(102234, 02, 102, 02, 1002, 12, 4, "2022-01-02"),
+(103234, 03, 103, 03, 1003, 13, 1, "2022-01-03"),
+(104234, 04, 104, 04, 1010, 14, 2, "2022-01-04"),
+(105234, 05, 105, 05, 1005, 15, 1, "2022-01-05");
+	
+INSERT INTO employees VALUES
+	(0111, "Jonny", "Runner", "Manager", "089-234-4213", "Jonny@happybook.co", 101),
+	(0112, "Tony", "Stark", "Staff", "088-312-3413", "Tony@happybook.co", 101),
+	(0113, "Peter", "Parker", "Manager", "083-313-3123", "Peter@happybook.co", 102),
+	(0114, "Henry", "Julie", "Staff", "083-232-1412", "Henry@happybook.co", 102),
+	(0115, "Bruce", "Banner", "Manager", "084-313-8232", "Bruce@happybook.co", 103),
+	(0116, "Steve", "Rogers", "Staff", "084-123-2424", "Steve@happybook.co", 103),
+	(0117, "Natasha", "Romanoff", "Manager", "082-423-4141", "Natasha@happybook.co", 104),
+	(0118, "Clint", "Barton", "Staff", "082-313-8232", "Clint@happybook.co", 104),
+	(0119, "Wanda", "Maximoff", "Manager", "081-313-4524", "Wanda@happybook.co", 105),
+	(0120, "Vision", "Scarlet", "Staff", "081-313-4524", "Vision@happybook.co", 105),
+	(0121, "Natalia", "Romanoff", "Manager", "069-696-6969", "Natalia@happybook.co", 106),
+	(0122, "Sam", "Wilson", "Staff", "069-696-6969", "Sam@happybook.co", 106);
 
--- The Best Seller drink --
-SELECT
-  drink_name,
-  drink_price,
-  COUNT (*) AS "number of oder",
-  SUM(drink_price) AS "Total_sales"
-FROM invoices
-JOIN drinks
-ON invoices.drink_id = drinks.drink_id
-GROUP BY drink_name
-ORDER BY "number of order" DESC
-LIMIT 1;
-
--- The Best Seller location --
-SELECT
-  COUNT(*) AS "number of customer",
-  SUM(menu_price) AS "total_food",
-  SUM(drink_price) AS "total_drink",
-  SUM(menu_price) + SUM(drink_price) AS "total cost",
-  locations.location_id,
-  locations.location_name
-FROM invoices
-JOIN locations
-ON invoices.location_id = locations.location_id
-JOIN drinks
-ON invoices.drink_id = drinks.drink_id
-JOIN menus
-ON invoices.menu_id = menus.menu_id
-GROUP BY locations.location_id, locations.location_name
-ORDER BY "number of customer" DESC;
-
--- CREATE VIEW --
-CREATE VIEW IF NOT EXISTS customers_view AS 
-  WITH sub1 AS
-    (SELECT
-        invoice_id,
-        customers.customer_id,
-        firstname || " " || lastname AS customer_name,
-        menu_price,
-        drink_price,
-        location_name,
-        menu_price + drink_price AS total_price
-      FROM invoices
-      JOIN customers
-        ON invoice.customer_id = customers.cutomer_id
-      JOIN menus
-        ON invoice.menu_id = menus.munu_id
-      ORDER BY firstname)
-  
-    SELECT
-      customer_id,
-      customer_name,
-      SUM(total_price) AS "Total cost"
-    FROM sub1
-    GROUP BY customer_name
-    ORDER BY customer_id;
-
-
-  
-WITH sub1 AS (
-    SELECT * 
-    FROM customers
-    WHERE email LIKE '%gmail.com'
-), sub2 AS (
-    SELECT 
-      location_id,
-      location_name,
-      COALESCE(location_name, "No information") AS clean_location
-    FROM locations
-    WHERE location_id = 'CNX'
-)
-
-SELECT 
-  sub1.firstname,
-  sub2.location_name
-FROM sub1
-JOIN sub2
-ON sub1.customer_id = sub2.location_id;
+INSERT INTO orders VALUES
+(01, "2022-01-01", 021312, 1001, 2, 01),
+(02, "2022-01-02", 023413, 1002, 3, 02),
+(03, "2022-01-03", 031234, 1003, 2, 03),
+(04, "2022-01-04", 031423, 1004, 1, 04),
+(05, "2022-01-05", 042313, 1005, 3, 05),
+(06, "2022-01-06", 051323, 1006, 4, 06),
+(07, "2022-01-07", 061423, 1007, 1, 07),
+(08, "2022-01-08", 071323, 1008, 2, 08),
+(09, "2022-01-09", 081423, 1009, 2, 09),
+(10, "2022-01-10", 091323, 1003, 3, 10),
+(11, "2022-01-02", 101234, 1001, 4, 01),
+(12, "2022-01-02", 102234, 1002, 4, 02),
+(13, "2022-01-03", 103234, 1003, 1, 03),
+(14, "2022-01-04", 104234, 1010, 2, 04),
+(15, "2022-01-05", 105234, 1005, 1, 05);
